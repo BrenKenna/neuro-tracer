@@ -1,2 +1,3 @@
 # neuro-tracer
-App for styling cursive notes for tracing
+
+A local-first, customisable workspace for creating printable tracing books, handwriting exercises, and mindfull illustration decoration.
