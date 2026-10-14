@@ -9,6 +9,7 @@ import Home from "../pages/Home";
 import About from "../pages/About";
 import Account from "../pages/Account";
 import Catalogue from "../pages/Catalogue";
+import Sandbox from "../pages/Sandbox";
 
 
 // Defines the site router for the app.tsx
@@ -42,6 +43,11 @@ export const router = createBrowserRouter([
             {
                 path: "catalogue",
                 element: <Catalogue />
+            },
+
+            {
+                path: "sandbox",
+                element: <Sandbox />
             }
         ]
     }

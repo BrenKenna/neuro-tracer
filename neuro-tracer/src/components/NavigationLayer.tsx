@@ -19,8 +19,8 @@ export default function NavigationLayer() {
     return (
         <header className = {`navigation-layer ${menuOpen ? "menu-open": ""}`}>
             <NavLink to = "/" className = "nuerotracer-logo">
-                <span>Neuro-Tracer</span>
-                <span className = "logo-tagline">A tag line for Neuro-Tracer</span>
+                <img src="/Logo.png" alt="Neuro Tracer Logo"/>
+                <span>NeuroTraceR</span>
             </NavLink>
 
             <button

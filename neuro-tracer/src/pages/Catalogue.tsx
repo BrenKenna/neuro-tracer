@@ -5,7 +5,7 @@
  */
 export default function Catalogue() {
     return (
-        <div>
+        <div className="page">
             <h1>Catalogue</h1>
             <p>This is the Catalogue page.</p>
         </div>

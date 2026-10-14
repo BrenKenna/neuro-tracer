@@ -14,6 +14,18 @@ export type Zone = typeof Zone[keyof typeof Zone];
 
 
 /**
+ * Enum to represent page sizing type
+ */
+export const PageType = {
+    A3: 0,
+    A4: 1,
+    A5: 2
+} as const;
+
+export type PageType = typeof PageType[keyof typeof PageType];
+
+
+/**
  * Defines a data model for annotations
  */
 export interface Annotation {
@@ -29,7 +41,6 @@ export interface MetaData {
     title: string;
     description: string;
 }
-
 
 
 /**

@@ -8,7 +8,7 @@ export default function Footer() {
     return (
         <footer className = "site-footer">
             <div>
-                NeuroTracer - A tag line for Neuro-Tracer
+                NeuroTraceR - A tag line for NeuroTraceR
             </div>
         </footer>
     );
