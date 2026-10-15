@@ -8,12 +8,12 @@ export type Stores = (typeof Stores)[keyof typeof Stores];
 
 
 // Data store action
-export const StoreAction = {
+const StoreAction = {
     PUT: "Put",
     GET: "Get"
 } as const;
 
-export type StoreAction = (typeof StoreAction)[keyof typeof StoreAction];
+type StoreAction = (typeof StoreAction)[keyof typeof StoreAction];
 
 
 /**
@@ -60,10 +60,10 @@ interface DbTransaction {
 export class SandboxService {
 
     // Attributes
-    private dbPromise: Promise<IDBDatabase>;
-    private readonly STORES: typeof Stores;
-    private readonly dbName: string;
-    private version: number;
+    private version:            number;
+    private dbPromise:          Promise<IDBDatabase>;
+    private readonly STORES:    typeof Stores;
+    private readonly dbName:    string;
 
 
     /**
@@ -100,6 +100,26 @@ export class SandboxService {
         this.STORES = Stores;
         this.version = version;
         this.dbPromise = this.initDB();
+    }
+
+
+    /**
+     * Fetch database name
+     * 
+     * @returns Database name
+     */
+    public getDbName(): string {
+        return this.dbName;
+    }
+
+
+    /**
+     * Get database version
+     * 
+     * @returns database version
+     */
+    public getDbVersion(): number {
+        return this.version;
     }
 
 
