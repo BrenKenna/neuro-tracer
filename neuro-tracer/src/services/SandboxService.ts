@@ -1,4 +1,3 @@
-
 // Data stores
 export const Stores = {
     Books: "Books",
@@ -8,13 +7,29 @@ export const Stores = {
 export type Stores = (typeof Stores)[keyof typeof Stores];
 
 
+// Data store action
+export const StoreAction = {
+    PUT: "Put",
+    GET: "Get"
+} as const;
+
+export type StoreAction = (typeof StoreAction)[keyof typeof StoreAction];
+
+
+/**
+ * Referential data model for DB
+ */
+export interface DbRecord {
+    id?: number;
+}
+
+
 /**
  * Book data model
  */
-export interface Book {
-    id?: number;
+export interface Book extends DbRecord {
     title: string;
-    author: number;
+    authorId?: number;
     genre: string;
 }
 
@@ -22,10 +37,19 @@ export interface Book {
 /**
  * Author data model
  */
-export interface Author {
-    id?: number;
+export interface Author extends DbRecord {
     firstName: string;
     lastName: string;
+}
+
+
+/**
+ * Model for transaction operation
+ * 
+ */
+interface DbTransaction {
+    transaction: IDBTransaction;
+    resp: IDBRequest;
 }
 
 
@@ -73,9 +97,9 @@ export class SandboxService {
      */
     constructor(dbName = "SandboxDB", version = 1) {
         this.dbName = dbName;
-        this.dbPromise = this.initDB();
         this.STORES = Stores;
         this.version = version;
+        this.dbPromise = this.initDB();
     }
 
 
@@ -156,5 +180,236 @@ export class SandboxService {
         reject: ( reason ?: unknown ) => void
     ): void {
         reject(req.error);
+    }
+
+
+    /**
+     * Performs required action under transaction
+     * 
+     * @param db - database
+     * @param target - which store to put record in
+     * @param record - record to insert
+     * @param action - {@link StoreAction}
+     * 
+     * @returns {DbTransaction}
+     */
+    private transactionOperation(
+        db: IDBDatabase,
+        target: Stores,
+        record: DbRecord,
+        action: StoreAction
+    ): DbTransaction {
+
+        // Initialize variables
+        let
+            transaction: IDBTransaction,
+            store: IDBObjectStore,
+            resp: IDBRequest
+        ;
+
+        // Handle action
+        switch (action) {
+
+            // Adding record
+            case StoreAction.PUT: {
+                transaction = db.transaction(
+                    target,
+                    "readwrite"
+                );
+                store = transaction.objectStore(target)
+                resp = store.put(record);
+                break;
+            }
+            
+            // Dropping record
+            case StoreAction.GET: {
+                transaction = db.transaction(
+                    target,
+                    "readonly"
+                );
+                store = transaction.objectStore(target)
+                resp = store.get(record.id ?? -1);
+                break;
+            }
+
+            // Unsupported action
+            default: {
+                throw new Error(`Unsupported store action:\t'${action}'`);
+            }
+        };
+
+        // Return respon to caller for eval
+        return {
+            transaction: transaction, 
+            resp: resp
+        };
+    }
+
+
+    /**
+     * Adds {@link Book} under transaction
+     * 
+     * @param book - book
+     * 
+     * @returns {Promise} on inserted primary key
+     */
+    public async addBook(book: Book): Promise<number> {
+        const db = await this.dbPromise;
+        return new Promise((resolve, reject) => {
+            
+            // Perform write operation under transation
+            const dbTransOp: DbTransaction = this.transactionOperation(
+                db,
+                Stores.Books, 
+                book,
+                StoreAction.PUT
+            );
+
+            // Provide result
+            let key: number;
+            dbTransOp.resp.onsuccess = () => {
+                key = dbTransOp.resp.result as number;
+            };
+
+            // Transaction committed
+            dbTransOp.transaction.oncomplete = () => {
+                resolve(key);
+            };
+
+            // Otherwise error
+            dbTransOp.transaction.onabort = () => {
+                reject(
+                    dbTransOp.transaction.error ??
+                    new Error("Transaction for book write aborted")
+                );
+            };
+        });
+    }
+
+
+    /**
+     * Fetch {@link Book} matching Id
+     * 
+     * @param id - primary key of the book
+     * 
+     * @returns {Promise} on {@link Book}
+     */
+    public async getBook(id: number): Promise< Book | undefined > {
+        const db = await this.dbPromise;
+        return new Promise( (resolve, reject) => {
+            
+            // Perform read action under transation
+            const query: DbRecord = { id: id };
+            const dbTransOp: DbTransaction = this.transactionOperation(
+                db,
+                Stores.Books,
+                query,
+                StoreAction.GET
+            );
+
+            // Provide result
+            let book: Book | undefined;
+            dbTransOp.resp.onsuccess = () => {
+                dbTransOp.resp.result as Book | undefined;
+            };
+            dbTransOp.transaction.oncomplete = () => {
+                resolve(book);
+            }
+
+            // Otherwise error
+            dbTransOp.resp.onerror = () => {
+                reject(dbTransOp.resp.error);
+            }
+            dbTransOp.transaction.onabort = () => {
+                reject(
+                    dbTransOp.transaction.error ??
+                    new Error("Transaction for fetching book aborted")
+                );
+            }
+        });
+    }
+
+
+    /**
+     * Adds {@link Author} under transaction
+     * 
+     * @param author - author
+     * 
+     * @returns {Promise} on inserted primary key
+     */
+    public async addAuthor(author: Author): Promise<number> {
+        const db = await this.dbPromise;
+        return new Promise( (resolve, reject) => {
+            
+            // Perform write operation under transation
+            const dbTransOp: DbTransaction = this.transactionOperation(
+                db,
+                Stores.Authors, 
+                author,
+                StoreAction.PUT
+            );
+
+            // Provide result
+            let key: number;
+            dbTransOp.resp.onsuccess = () => {
+                key = dbTransOp.resp.result as number;
+            };
+
+            // Transaction committed
+            dbTransOp.transaction.oncomplete = () => {
+                resolve(key);
+            };
+
+            // Otherwise error
+            dbTransOp.transaction.onabort = () => {
+                reject(
+                    dbTransOp.transaction.error ??
+                    new Error("Transaction for author write aborted")
+                );
+            };
+        });
+    }
+
+
+    /**
+     * Get author by primary key
+     * 
+     * @param id - primary key
+     * 
+     * @returns {Promise} on {@link Author} matching key
+     */
+    public async getAuthor(id: number): Promise< Author | undefined > {
+        const db = await this.dbPromise;
+        return new Promise( (resolve, reject) => {
+            
+            // Perform read action under transaction
+            const query: DbRecord = { id: id };
+            const dbTransOp: DbTransaction  = this.transactionOperation(
+                db,
+                Stores.Authors,
+                query,
+                StoreAction.GET
+            );
+
+            // Provide result
+            let author: Author | undefined;
+            dbTransOp.resp.onsuccess = () => {
+                author = dbTransOp.resp.result as Author | undefined;
+            }
+            dbTransOp.transaction.oncomplete = () => {
+                resolve(author);
+            };
+
+            // Otherwise error
+            dbTransOp.resp.onerror = () => {
+                reject(dbTransOp.resp.error);
+            }
+            dbTransOp.transaction.onabort = () => {
+                reject(
+                    dbTransOp.transaction.error ??
+                    new Error("Transaction for fetching author aborted")
+                );
+            }
+        });
     }
 }
